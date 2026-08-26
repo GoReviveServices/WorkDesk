@@ -1,0 +1,49 @@
+{
+  "name": "gorevive-bulk-uploader",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@types/uuid": "^10.0.0",
+    "axios": "^1.19.0",
+    "cheerio": "^1.2.0",
+    "lucide-react": "^1.31.0",
+    "mongodb": "^7.5.0",
+    "next": "^16.2.4",
+    "papaparse": "^5.4.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-dropzone": "^20.1.0",
+    "uuid": "^14.0.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.15"
+  },
+  "overrides": {
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/papaparse": "^5.3.14",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.4",
+    "eslint": "^10.8.0",
+    "eslint-config-next": "^16.2.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.7.0",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.7.0",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.11"
+  }
+}
