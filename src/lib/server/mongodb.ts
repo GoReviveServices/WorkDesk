@@ -12,14 +12,17 @@ function getClientPromise(): Promise<MongoClient> {
     throw new Error('MONGODB_URI is not set. Copy .env.local.example to .env.local and fill it in.');
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    if (!global._mongoClientPromise) {
-      global._mongoClientPromise = new MongoClient(uri).connect();
-    }
-    return global._mongoClientPromise;
+  if (!global._mongoClientPromise) {
+    const client = new MongoClient(uri, {
+      maxPoolSize: 10,
+      minPoolSize: 0,
+      maxIdleTimeMS: 30000,
+      serverSelectionTimeoutMS: 8000,
+    });
+    global._mongoClientPromise = client.connect();
   }
 
-  return new MongoClient(uri).connect();
+  return global._mongoClientPromise;
 }
 
 export async function getDb(): Promise<Db> {
