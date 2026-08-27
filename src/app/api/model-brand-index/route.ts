@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await lookupModelBrand(model);
-    return NextResponse.json(result);
+    const source = result ? 'mongo' : 'miss';
+    console.log(`[${source.toUpperCase()}:GET] ${request.nextUrl.pathname}${request.nextUrl.search}`);
+    return NextResponse.json(result, { headers: { 'X-Cache-Source': source } });
   } catch (error) {
     console.error('Failed to look up model->brand:', error);
     return NextResponse.json({ error: 'Could not read the model->brand index.' }, { status: 502 });

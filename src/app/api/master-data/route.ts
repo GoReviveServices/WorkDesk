@@ -4,13 +4,22 @@ import { htmlToJson, looksLikeLoginPage } from '@/lib/server/htmlParsers';
 import { getCachedMasterData, setCachedMasterData } from '@/lib/server/masterDataCache';
 import { SESSION_COOKIE_NAME } from '@/lib/shared/sessionCookie';
 
+// Terminal-visible debug tag — prints right next to Next.js's own
+// request log line, e.g. "[MEMORY:GET] /api/master-data". Not the same
+// line (no hook into Next's internal timing logger), but same practical
+// answer: which tier actually served this request.
+function logSource(request: NextRequest, source: string) {
+  console.log(`[${source.toUpperCase()}:${request.method}] ${request.nextUrl.pathname}${request.nextUrl.search}`);
+}
+
 export async function GET(request: NextRequest) {
   const forceRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
 
   if (!forceRefresh) {
-    const cached = getCachedMasterData();
+    const cached = await getCachedMasterData();
     if (cached) {
-      return NextResponse.json(cached);
+      logSource(request, cached.source);
+      return NextResponse.json(cached.value, { headers: { 'X-Cache-Source': cached.source } });
     }
   }
 
@@ -44,7 +53,8 @@ export async function GET(request: NextRequest) {
   }
 
   const masterData = htmlToJson(result.data);
-  setCachedMasterData(masterData);
+  await setCachedMasterData(masterData);
 
-  return NextResponse.json(masterData);
+  logSource(request, 'legacy');
+  return NextResponse.json(masterData, { headers: { 'X-Cache-Source': 'legacy' } });
 }

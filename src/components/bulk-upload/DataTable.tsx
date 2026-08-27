@@ -108,14 +108,6 @@ function FieldCell({ row, fieldKey }: { row: ValidatedRow; fieldKey: string }) {
                       <button
                         key={opt}
                         onClick={() => {
-                          // Layer 3 of the verification flow: a manual
-                          // Pick on a field that had no automatic match
-                          // is a human confirming "this raw text really
-                          // does mean this value". Held here, not
-                          // written to the learned-corrections DB yet —
-                          // that only happens on actual upload (see
-                          // submitValidRows), so an exploratory pick
-                          // that's later changed never gets learned.
                           if (error) {
                             const scope = fieldKey === 'model' ? row.original.make || '' : 'global';
                             addPendingCorrection({ field: fieldKey, scope, rawValue: value, correctValue: opt });

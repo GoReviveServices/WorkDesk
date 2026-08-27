@@ -38,6 +38,25 @@ async function fetchMasterData(): Promise<MasterData> {
   }
 }
 
+/**
+ * Clears this browser tab's cached general/global data (CPU list, GPU
+ * list, HSN codes, colors, etc. — everything brand-independent) and
+ * fetches it fresh, bypassing both this tab's cache and the server-side
+ * one. For when something new got added on the CRM side and the operator
+ * doesn't want to lose their current in-progress review to pick it up.
+ */
+export async function resetMasterDataCache(): Promise<void> {
+  cachedMasterData = null;
+  try {
+    const response = await fetch('/api/master-data?refresh=true');
+    if (response.ok) {
+      cachedMasterData = await response.json();
+    }
+  } catch (error) {
+    console.error('Failed to refresh master data:', error);
+  }
+}
+
 const dynamicMapCache = new Map<string, Record<string, string>>();
 
 async function fetchDynamicMap(action: string, value: string): Promise<Record<string, string>> {
@@ -60,6 +79,30 @@ async function fetchDynamicMap(action: string, value: string): Promise<Record<st
     console.error(`Failed to fetch field options for ${action}=${value}:`, error);
     return {};
   }
+}
+
+/**
+ * Clears this browser tab's cached category/model list for ONE brand and
+ * fetches it fresh, bypassing both this tab's cache and the server-side
+ * one. Scoped to a single brandId so a new model added to one brand on
+ * the CRM doesn't require reloading everyone's cached data.
+ */
+export async function resetBrandCache(brandId: string): Promise<void> {
+  const actions = ['getProductName_master', 'getModel_masterlist'];
+  await Promise.all(
+    actions.map(async (action) => {
+      dynamicMapCache.delete(`${action}:${brandId}`);
+      try {
+        const params = new URLSearchParams({ action, value: brandId, refresh: 'true' });
+        const response = await fetch(`/api/field-options?${params.toString()}`);
+        if (response.ok) {
+          dynamicMapCache.set(`${action}:${brandId}`, await response.json());
+        }
+      } catch (error) {
+        console.error(`Failed to refresh field options for ${action}=${brandId}:`, error);
+      }
+    })
+  );
 }
 
 // ---------------------------------------------------------------------------

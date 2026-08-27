@@ -55,6 +55,16 @@ export async function processQcFile(
     const correctedOriginal = await correctCategoryPlacement(group.original);
 
     const result = await validateRow(correctedOriginal);
+
+    // QC Import never submits to the CRM directly — it's a data-prep
+    // tool whose deliverable is a downloaded sheet for someone else to
+    // run through Bulk Upload, which is where HSN actually gets
+    // enforced. Dropping it here (never touching validateRow/schema
+    // itself, which bulk-upload still depends on unchanged) rather than
+    // changing what "required" means for the shared engine.
+    const { hsn_code: _hsnError, ...errorsWithoutHsn } = result.errors;
+    const isValid = Object.keys(errorsWithoutHsn).length === 0;
+
     validatedGroups.push({
       ...group,
       // validateRow may ALSO silently fix whitespace-only mismatches
@@ -62,8 +72,8 @@ export async function processQcFile(
       // its own correctedOriginal is the final word on what's displayed.
       original: result.correctedOriginal,
       data: result.data,
-      errors: result.errors,
-      isValid: result.isValid,
+      errors: errorsWithoutHsn,
+      isValid,
     });
   }
 

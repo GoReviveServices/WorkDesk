@@ -12,7 +12,6 @@ const COLUMNS: { label: string; key: string }[] = [
   { label: 'Category', key: 'product_name' },
   { label: 'Sub Category', key: 'sub_producd' },
   { label: 'Model', key: 'model' },
-  { label: 'HSN Code', key: 'hsn_code' },
   { label: 'RAM', key: 'ram_cap' },
   { label: 'HDD', key: 'strg1' },
   { label: 'SSD', key: 'strg2' },
@@ -108,7 +107,7 @@ function QcFieldCell({ group, fieldKey }: { group: GroupedModelRow; fieldKey: st
                   {loadingOptions && <div className="px-3 py-2 text-xs text-gray-400">Loading options…</div>}
                   {!loadingOptions && options !== null && options.length === 0 && (
                     <div className="px-3 py-2 text-xs text-gray-400">
-                      No options available — fix a field this one depends on first (e.g. Brand).
+                      No options available — either this list depends on Brand being resolved first, or the CRM has no entries for it yet.
                     </div>
                   )}
                   {!loadingOptions && options !== null && options.length > 0 && filteredOptions?.length === 0 && (
@@ -142,9 +141,8 @@ function QcFieldCell({ group, fieldKey }: { group: GroupedModelRow; fieldKey: st
 }
 
 export function QcGroupRow({ group }: { group: GroupedModelRow }) {
-  const { removeGroup, results, isUploading } = useQcImportStore();
+  const removeGroup = useQcImportStore((s) => s.removeGroup);
   const [showSerials, setShowSerials] = useState(false);
-  const result = results[group.id];
 
   return (
     <tr className={`border-b hover:bg-gray-50 transition-colors align-top ${!group.isValid ? 'bg-red-50/30' : ''}`}>
@@ -190,32 +188,10 @@ export function QcGroupRow({ group }: { group: GroupedModelRow }) {
         </Fragment>
       ))}
 
-      {result && (
-        <td className="px-4 py-3">
-          <div className="flex flex-col gap-0.5">
-            <span
-              className={`text-xs font-semibold ${
-                result.status === 'success'
-                  ? 'text-green-700'
-                  : result.status === 'ambiguous'
-                    ? 'text-amber-600'
-                    : 'text-red-600'
-              }`}
-            >
-              {result.modelCode || '—'}
-            </span>
-            <span className="text-[11px] text-gray-400 max-w-[160px] truncate" title={result.message}>
-              {result.message}
-            </span>
-          </div>
-        </td>
-      )}
-
       <td className="px-4 py-3 text-right sticky right-0 bg-white z-10">
         <button
           onClick={() => removeGroup(group.id)}
-          disabled={isUploading}
-          className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 p-1 rounded-md hover:bg-red-50"
+          className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50"
         >
           <Trash2 className="w-5 h-5" />
         </button>

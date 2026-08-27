@@ -4,9 +4,14 @@ import { parseHtmlOptionsExact, looksLikeLoginPage } from '@/lib/server/htmlPars
 import { getCachedFieldOptions, setCachedFieldOptions } from '@/lib/server/masterDataCache';
 import { SESSION_COOKIE_NAME } from '@/lib/shared/sessionCookie';
 
+function logSource(request: NextRequest, source: string) {
+  console.log(`[${source.toUpperCase()}:${request.method}] ${request.nextUrl.pathname}${request.nextUrl.search}`);
+}
+
 export async function GET(request: NextRequest) {
   const action = request.nextUrl.searchParams.get('action');
   const value = request.nextUrl.searchParams.get('value');
+  const forceRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
 
   if (!action || !value) {
     return NextResponse.json(
@@ -20,9 +25,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
   }
 
-  const cached = getCachedFieldOptions(action, value);
-  if (cached) {
-    return NextResponse.json(cached);
+  if (!forceRefresh) {
+    const cached = await getCachedFieldOptions(action, value);
+    if (cached) {
+      logSource(request, cached.source);
+      return NextResponse.json(cached.value, { headers: { 'X-Cache-Source': cached.source } });
+    }
   }
 
   let result;
@@ -57,7 +65,8 @@ export async function GET(request: NextRequest) {
   const htmlPart = result.data.split('~')[0];
   const options = parseHtmlOptionsExact(htmlPart);
 
-  setCachedFieldOptions(action, value, options);
+  await setCachedFieldOptions(action, value, options);
 
-  return NextResponse.json(options);
+  logSource(request, 'legacy');
+  return NextResponse.json(options, { headers: { 'X-Cache-Source': 'legacy' } });
 }

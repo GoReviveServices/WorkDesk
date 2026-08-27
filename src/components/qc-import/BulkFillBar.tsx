@@ -4,18 +4,16 @@ import { useState } from 'react';
 import { Wand2, Loader2 } from 'lucide-react';
 import { useQcImportStore } from '@/store/useQcImportStore';
 
-// hsn_code and color are the two documented batch-default targets (TRD
-// §5/§6) — fields with no source column in the QC report at all, so a
-// per-batch operator-set default is the intended fix, not per-row entry.
-const BULK_FILL_FIELDS: { label: string; key: string }[] = [
-  { label: 'HSN Code', key: 'hsn_code' },
-  { label: 'Color', key: 'color' },
-];
+// color is the documented batch-default target — a field with no source
+// column in the QC report at all, so a per-batch operator-set default is
+// the intended fix, not per-row entry. HSN Code deliberately isn't here:
+// QC Import never submits to the CRM, so HSN is out of scope entirely —
+// it gets filled in later, during Bulk Upload.
+const BULK_FILL_FIELDS: { label: string; key: string }[] = [{ label: 'Color', key: 'color' }];
 
 export function BulkFillBar() {
   const groups = useQcImportStore((s) => s.groups);
   const bulkFillField = useQcImportStore((s) => s.bulkFillField);
-  const isUploading = useQcImportStore((s) => s.isUploading);
 
   const [field, setField] = useState(BULK_FILL_FIELDS[0].key);
   const [value, setValue] = useState('');
@@ -46,7 +44,7 @@ export function BulkFillBar() {
       <select
         value={field}
         onChange={(e) => setField(e.target.value)}
-        disabled={isUploading || isApplying}
+        disabled={isApplying}
         className="text-sm border border-amber-300 rounded-lg px-2 py-1.5 bg-white outline-none focus:ring-2 focus:ring-amber-400"
       >
         {BULK_FILL_FIELDS.map((f) => (
@@ -61,13 +59,13 @@ export function BulkFillBar() {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Value to apply"
-        disabled={isUploading || isApplying}
+        disabled={isApplying}
         className="text-sm border border-amber-300 rounded-lg px-3 py-1.5 flex-1 min-w-[160px] outline-none focus:ring-2 focus:ring-amber-400"
       />
 
       <button
         onClick={handleApply}
-        disabled={isUploading || isApplying || !value.trim() || targetGroupIds.length === 0}
+        disabled={isApplying || !value.trim() || targetGroupIds.length === 0}
         className="flex items-center gap-1.5 text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 rounded-lg px-4 py-1.5 transition-colors"
       >
         {isApplying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
