@@ -4,6 +4,9 @@ import { findExactMatch, suggestClosest, describeCharDiff, levenshtein, findWhit
 import { correctCategoryPlacement } from './categoryMap';
 import { applyFieldCorrections } from './fieldCorrections.client';
 import { lookupModelBrand } from './modelBrandIndex.client';
+import { preloadFieldCorrections } from './fieldCorrections.client';
+import { preloadModelBrandIndex } from './modelBrandIndex.client';
+import { preloadCategoryMap } from './categoryMap';
 
 // ---------------------------------------------------------------------------
 // Client-side fetch wrappers for OUR OWN API routes (never the legacy
@@ -640,15 +643,21 @@ export const parseAndValidateExcel = async (
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
-        const rawJson: Record<string, unknown>[] = XLSX.utils.sheet_to_json(worksheet, {
-          defval: '',
-          raw: true,
-        });
+       const rawJson: Record<string, unknown>[] = XLSX.utils.sheet_to_json(worksheet, {
+  defval: '',
+  raw: true,
+});
 
-        const total = rawJson.length;
-        const validatedRows: ValidatedRow[] = [];
+const modelColumnHeader = Object.keys(COLUMN_MAPPING).find((h) => COLUMN_MAPPING[h] === 'model');
+const rawModelsForPreload = modelColumnHeader
+  ? rawJson.map((row) => ({ model: String(row[modelColumnHeader] ?? '') }))
+  : [];
+await preloadValidationData(rawModelsForPreload);
 
-        for (let index = 0; index < rawJson.length; index++) {
+const total = rawJson.length;
+const validatedRows: ValidatedRow[] = [];
+
+for (let index = 0; index < rawJson.length; index++) {
           const row = rawJson[index];
           onProgress?.(index + 1, total);
 
@@ -659,10 +668,6 @@ export const parseAndValidateExcel = async (
             original[apiKey] = cell !== undefined && cell !== null ? String(cell) : '';
           });
 
-          // Correct a Category/Sub Category placement mistake (e.g.
-          // "Laptop" typed into Category) BEFORE validation, so the
-          // table displays the corrected field, not just an internally
-          // resolved value sitting behind a still-wrong-looking cell.
           original = await correctCategoryPlacement(original);
 
           const result = await validateRow(original);
@@ -671,9 +676,6 @@ export const parseAndValidateExcel = async (
             id: crypto.randomUUID(),
             rowIndex: index + 2,
             data: result.data,
-            // validateRow also silently fixes whitespace-only mismatches
-            // (e.g. "8 GB" -> "8GB") — correctedOriginal carries those
-            // through, same reasoning as correctCategoryPlacement above.
             original: result.correctedOriginal,
             isValid: result.isValid,
             errors: result.errors,
@@ -689,3 +691,28 @@ export const parseAndValidateExcel = async (
     reader.readAsArrayBuffer(file);
   });
 };
+
+
+export async function preloadValidationData(rawRows: Record<string, string>[]): Promise<void> {
+  const rawModels = Array.from(
+    new Set(rawRows.map((r) => r.model).filter((m): m is string => !!m && m.trim().length > 0))
+  );
+
+  try {
+    const response = await fetch('/api/validate/bootstrap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rawModels }),
+    });
+    if (!response.ok) {
+      console.error('Failed to load validation bootstrap data:', response.status);
+      return;
+    }
+    const { corrections, modelBrandIndex, categoryMap } = await response.json();
+    preloadFieldCorrections(corrections);
+    preloadModelBrandIndex(modelBrandIndex);
+    preloadCategoryMap(categoryMap);
+  } catch (error) {
+    console.error('Failed to load validation bootstrap data:', error);
+  }
+}

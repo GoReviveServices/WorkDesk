@@ -220,3 +220,26 @@ export async function getFieldCorrections(field: string, scope: string): Promise
   const db = await getDb();
   return db.collection<FieldCorrectionDoc>('field_corrections').find({ field, scope }).toArray();
 }
+
+export async function getBulkFieldCorrections(
+  pairs: { field: string; scope: string }[]
+): Promise<Record<string, FieldCorrectionDoc[]>> {
+  const grouped: Record<string, FieldCorrectionDoc[]> = {};
+  for (const { field, scope } of pairs) {
+    grouped[`${field}:${scope}`] = [];
+  }
+  if (pairs.length === 0) return grouped;
+
+  const db = await getDb();
+  const docs = await db
+    .collection<FieldCorrectionDoc>('field_corrections')
+    .find({ $or: pairs.map(({ field, scope }) => ({ field, scope })) })
+    .toArray();
+
+  for (const doc of docs) {
+    const key = `${doc.field}:${doc.scope}`;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(doc);
+  }
+  return grouped;
+}

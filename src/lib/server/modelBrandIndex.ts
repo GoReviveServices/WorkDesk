@@ -124,3 +124,20 @@ export async function getModelBrandConflicts(): Promise<ModelBrandConflictDoc[]>
     .sort({ detectedAt: -1 })
     .toArray();
 }
+
+export async function bulkLookupModelBrand(rawModels: string[]): Promise<Record<string, LookupResult>> {
+  const keys = Array.from(new Set(rawModels.map(normalizeKey).filter(Boolean)));
+  const result: Record<string, LookupResult> = {};
+  if (keys.length === 0) return result;
+
+  const db = await getDb();
+  const docs = await db
+    .collection<ModelBrandIndexDoc>('model_brand_index')
+    .find({ rawModelKey: { $in: keys } })
+    .toArray();
+
+  for (const doc of docs) {
+    result[doc.rawModelKey] = { brand: doc.brand, crmModelMatch: doc.crmModelMatch };
+  }
+  return result;
+}
