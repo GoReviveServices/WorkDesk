@@ -99,3 +99,7 @@ export async function syncCategoryMap(legacySessionCookie: string): Promise<Sync
 
   return { brandsScanned, categoriesFound: categoryToSubs.size, subCategoriesFound };
 }
+export async function getCategoryMap(): Promise<CategoryMapDoc[]> {
+  const db = await getDb();
+  return db.collection<CategoryMapDoc>('category_map').find({}).toArray();
+}

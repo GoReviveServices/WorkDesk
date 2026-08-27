@@ -21,6 +21,13 @@ export interface PendingCorrection {
 
 const cache = new Map<string, FieldCorrectionEntry[]>();
 
+/** Prefills the cache from a bootstrap response, avoiding per-field network calls entirely. */
+export function preloadFieldCorrections(entries: Record<string, FieldCorrectionEntry[]>): void {
+  for (const [key, docs] of Object.entries(entries)) {
+    cache.set(key, docs);
+  }
+}
+
 function cacheKey(field: string, scope: string): string {
   return `${field}:${scope}`;
 }

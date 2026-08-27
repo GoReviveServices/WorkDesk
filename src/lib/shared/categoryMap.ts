@@ -5,6 +5,11 @@ export interface CategoryMapEntry {
 
 let cachedCategoryMap: CategoryMapEntry[] | null = null;
 
+/** Prefills the cache from a bootstrap response, skipping the /api/category-map round trip. */
+export function preloadCategoryMap(entries: CategoryMapEntry[]): void {
+  cachedCategoryMap = entries;
+}
+
 export async function fetchCategoryMap(): Promise<CategoryMapEntry[]> {
   if (cachedCategoryMap) return cachedCategoryMap;
 
@@ -30,15 +35,6 @@ export interface FieldSwapSuggestion {
   correctSubCategory: string;
 }
 
-/**
- * Detects a Category <-> Sub Category field swap: a value typed into
- * `product_name` (Category) that actually matches a known SUB-category
- * name, or a value typed into `sub_producd` (Sub Category) that actually
- * matches a known CATEGORY name. Exact match only (case-insensitive) —
- * this catches "put it in the wrong field entirely", not typos; typo
- * correction is already handled by suggestClosest against the correct
- * field's own dropdown.
- */
 export async function detectFieldSwap(
   fieldKey: 'product_name' | 'sub_producd',
   rawValue: string
@@ -62,17 +58,7 @@ export async function detectFieldSwap(
   return match ? { correctCategory: match.category, correctSubCategory: '' } : null;
 }
 
-/**
- * Applies the same Category/Sub Category placement correction as
- * detectFieldSwap, but returns a corrected copy of the actual "original"
- * record — the raw value the review table displays — rather than just
- * informing validation internally. Call this at ingestion time (when
- * rows/groups first enter the app), not inside validateRow, so the
- * table visibly shows the corrected placement instead of silently
- * resolving it behind the scenes while still displaying the wrong field.
- * Only applies when the OTHER field is empty, so two genuinely distinct
- * values already present in both fields are never overwritten.
- */
+
 export async function correctCategoryPlacement(
   original: Record<string, string>
 ): Promise<Record<string, string>> {
